@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.DrawableRes
+import androidx.annotation.RawRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,12 +28,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +53,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import tw.edu.pu.csim.s1141223.basic_2026.ui.theme.Basic_2026Theme
 
 class MainActivity : ComponentActivity() {
@@ -74,12 +82,40 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Main(modifier: Modifier = Modifier) {
-    Box(){
+    // 1. 定義當前影片資源的 State
+    var currentVideoRes by remember { mutableStateOf(R.raw.love) }
+
+    Box {
         LazyColumnExample(modifier)
         ColumnExample(modifier)
         TextFieldExample(modifier)
         test(modifier)
         LazyRowExample(modifier)
+
+        // 2. 將影片與切換按鈕放在 Column 中
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            SimpleVideoPlayer(currentVideoRes)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 3. 切換按鈕
+            Button(
+                onClick = {
+                    currentVideoRes = if (currentVideoRes == R.raw.love) {
+                        R.raw.handpan
+                    } else {
+                        R.raw.love
+                    }
+                }
+            ) {
+                Text(
+                    text = if (currentVideoRes == R.raw.love) "切換至手碟影片" else "切換至Love影片"
+                )
+            }
+        }
     }
 }
 @Composable
@@ -261,6 +297,42 @@ fun LazyRowExample(modifier: Modifier = Modifier) {
 
         }
     }
+}
+@Composable
+fun SimpleVideoPlayer(
+    @RawRes videoRes: Int
+) {
+    val context = LocalContext.current
+
+    // 1. 僅建立與記憶 ExoPlayer 實體
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build()
+    }
+
+    // 2. LaunchedEffect 放到 remember 外面
+    LaunchedEffect(videoRes) {
+        val uri = "android.resource://${context.packageName}/$videoRes"
+        exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                player = exoPlayer
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+    )
 }
 
 
