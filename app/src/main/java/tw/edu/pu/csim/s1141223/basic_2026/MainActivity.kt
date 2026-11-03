@@ -266,6 +266,7 @@ fun LazyRowExample(modifier: Modifier = Modifier) {
                     containerColor = Color(0xFFD0BCFF)
                 )
             ){
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
